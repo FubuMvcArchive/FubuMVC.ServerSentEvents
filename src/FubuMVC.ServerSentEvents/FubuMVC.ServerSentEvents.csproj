@@ -54,6 +54,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -64,6 +65,7 @@
     <Compile Include="Channel.cs" />
     <Compile Include="ChannelWriter.cs" />
     <Compile Include="EventPublisher.cs" />
+    <Compile Include="IServerEvent.cs" />
     <Compile Include="ServerEventList.cs" />
     <Compile Include="ServerSentEventRegistry.cs" />
     <Compile Include="ServerSentEventsExtension.cs" />

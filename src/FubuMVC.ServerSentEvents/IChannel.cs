@@ -9,9 +9,9 @@ namespace FubuMVC.ServerSentEvents
         void Flush();
     }
 
-    public interface IChannel<T> : IChannel where T : Topic
+    public interface IChannel<in T> : IChannel where T : Topic
     {
-        Task<IEnumerable<ServerEvent>> FindEvents(T topic);
+        Task<IEnumerable<IServerEvent>> FindEvents(T topic);
         void Write(Action<IEventQueue<T>> action);
         bool IsConnected();
     }

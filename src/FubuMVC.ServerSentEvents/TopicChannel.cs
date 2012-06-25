@@ -6,7 +6,7 @@ namespace FubuMVC.ServerSentEvents
     {
         IChannel<T> Channel { get; }
         IEventQueue<T> Queue { get; }
-        void WriteEvents(T topic, params ServerEvent[] events);
+        void WriteEvents(T topic, params IServerEvent[] events);
     }
 
     public class TopicChannel<T> : ITopicChannel<T> where T : Topic
@@ -20,7 +20,7 @@ namespace FubuMVC.ServerSentEvents
         public IChannel<T> Channel { get; private set;}
         public IEventQueue<T> Queue { get; private set;}
 
-        public void WriteEvents(T topic, params ServerEvent[] events)
+        public void WriteEvents(T topic, params IServerEvent[] events)
         {
             Channel.Write(q => q.Write(events));
         }

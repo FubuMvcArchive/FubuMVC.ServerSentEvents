@@ -9,9 +9,6 @@ deploy
 deploy/*
 src/CommonAssemblyInfo.cs
 _ReSharper.*
-*.csproj.user
-*.resharper.user
-*.ReSharper.user
 *.suo
 *.cache
 ~$*
@@ -25,3 +22,4 @@ src/*/repositories.config
 results
 bottles.cmd
 fubu.cmd
+*.user

@@ -16,7 +16,7 @@ namespace FubuMVC.ServerSentEvents.Testing
         [Test]
         public void should_write_the_content_type_on_the_first_call_to_write_data()
         {
-            ClassUnderTest.WriteData("something");
+            ClassUnderTest.WriteData(() => "something");
 
             MockFor<IOutputWriter>().AssertWasCalled(x => x.ContentType(MimeType.EventStream));
         }
@@ -24,11 +24,11 @@ namespace FubuMVC.ServerSentEvents.Testing
         [Test]
         public void should_flush_after_each_write()
         {
-            ClassUnderTest.WriteData("something");
+            ClassUnderTest.WriteData(() => "something");
 
             MockFor<IOutputWriter>().AssertWasCalled(x => x.Flush());
 
-            ClassUnderTest.WriteData("else");
+            ClassUnderTest.WriteData(() => "else");
 
             MockFor<IOutputWriter>().AssertWasCalled(x => x.Flush(), x => x.Repeat.Twice());
 
@@ -37,14 +37,27 @@ namespace FubuMVC.ServerSentEvents.Testing
         [Test]
         public void only_writes_the_mimetype_once()
         {
-            ClassUnderTest.WriteData("something");
-            ClassUnderTest.WriteData("something");
-            ClassUnderTest.WriteData("something");
-            ClassUnderTest.WriteData("something");
-            ClassUnderTest.WriteData("something");
-            ClassUnderTest.WriteData("something");
+            ClassUnderTest.WriteData(() => "something");
+            ClassUnderTest.WriteData(() => "something");
+            ClassUnderTest.WriteData(() => "something");
+            ClassUnderTest.WriteData(() => "something");
+            ClassUnderTest.WriteData(() => "something");
+            ClassUnderTest.WriteData(() => "something");
 
             MockFor<IOutputWriter>().AssertWasCalled(x => x.ContentType(MimeType.EventStream), x => x.Repeat.Once());
+        }
+
+        [Test]
+        public void returns_true_on_successful_write()
+        {
+            ClassUnderTest.WriteData(() => "something").ShouldBeTrue();
+        }
+
+        [Test]
+        public void returns_false_when_an_HttpException_occurs_on_flush()
+        {
+            MockFor<IOutputWriter>().Stub(x => x.Flush()).Throw(new HttpException());
+            ClassUnderTest.WriteData(() => "something").ShouldBeFalse();
         }
     }
 
@@ -65,21 +78,21 @@ namespace FubuMVC.ServerSentEvents.Testing
         public void write_only_data_and_id()
         {
             writer.Write(new ServerEvent("the id", "the data"));
-            output.Text.ShouldEqual("id: the id\ndata: the data\n\n");
+            output.Text.ShouldEqual("id: the id\ndata: \"the data\"\n\n");
         }
 
         [Test]
         public void write_with_id_data_and_event()
         {
             writer.Write(new ServerEvent("the id", "the data"){Event = "something"});
-            output.Text.ShouldEqual("id: the id/something\ndata: the data\n\n");  
+            output.Text.ShouldEqual("id: the id/something\ndata: \"the data\"\n\n");  
         }
 
         [Test]
         public void write_with_id_data_and_event_and_retry()
         {
             writer.Write(new ServerEvent("the id", "the data") { Event = "something", Retry = 1000});
-            output.Text.ShouldEqual("id: the id/something\nretry: 1000\ndata: the data\n\n");
+            output.Text.ShouldEqual("id: the id/something\nretry: 1000\ndata: \"the data\"\n\n");
         }
     }
 

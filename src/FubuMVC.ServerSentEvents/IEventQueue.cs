@@ -2,9 +2,9 @@ using System.Collections.Generic;
 
 namespace FubuMVC.ServerSentEvents
 {
-    public interface IEventQueue<T> where T : Topic
+    public interface IEventQueue<in T> where T : Topic
     {
-        IEnumerable<ServerEvent> FindQueuedEvents(T topic);
-        void Write(params ServerEvent[] events);
+        IEnumerable<IServerEvent> FindQueuedEvents(T topic);
+        void Write(params IServerEvent[] events);
     }
 }

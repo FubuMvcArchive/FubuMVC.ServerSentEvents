@@ -47,7 +47,7 @@ namespace FubuMVC.ServerSentEvents.Testing
 
         public interface IOddQueue : IEventQueue<FakeTopic>
         {
-            void WriteOddly(ServerEvent @event);
+            void WriteOddly(IServerEvent @event);
         }
     }
 }

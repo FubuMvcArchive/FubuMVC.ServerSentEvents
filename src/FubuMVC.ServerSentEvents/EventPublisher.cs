@@ -12,7 +12,7 @@ namespace FubuMVC.ServerSentEvents
             _cache = cache;
         }
 
-        public void WriteTo<T>(T topic, params ServerEvent[] events) where T : Topic
+        public void WriteTo<T>(T topic, params IServerEvent[] events) where T : Topic
         {
             _cache.ChannelFor(topic).WriteEvents(topic, events);
         }

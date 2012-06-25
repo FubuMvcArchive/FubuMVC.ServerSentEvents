@@ -13,23 +13,22 @@ namespace FubuMVC.ServerSentEvents.Testing
         private IChannel<FakeTopic> theChannel;
         private ChannelWriter<FakeTopic> theChannelWriter;
         private RecordingServerEventWriter theWriter;
-        private ServerEvent e1;
-        private ServerEvent e2;
-        private ServerEvent e3;
-        private ServerEvent e4;
-        private ServerEvent e5;
-        private FakeTopic theTopic = new FakeTopic();
+        private IServerEvent e1;
+        private IServerEvent e2;
+        private IServerEvent e3;
+        private IServerEvent e4;
+        private IServerEvent e5;
+        private FakeTopic theTopic;
 
         [SetUp]
         public void SetUp()
         {
             theWriter = new RecordingServerEventWriter();
 
-            
-
             var cache = MockRepository.GenerateMock<ITopicChannelCache>();
             var channel = new TopicChannel<FakeTopic>(new EventQueue<FakeTopic>());
             theChannel = channel.Channel;
+            theTopic = new FakeTopic();
 
             cache.Stub(x => x.ChannelFor(theTopic)).Return(channel);
 
@@ -89,20 +88,48 @@ namespace FubuMVC.ServerSentEvents.Testing
             // If you finish, you've succeeded
         }
 
+        [Test]
+        public void sets_last_event_id_to_last_successfully_written_message()
+        {
+            theWriter.FailOnNthWrite = 3;
+
+            theChannel.Write(q =>
+            {
+                q.Write(e1, e2, e3);
+            });
+
+            theWriter.ConnectedTest = () => !theWriter.Events.Contains(e2);
+
+            var task = theChannelWriter.Write(theTopic);
+
+            task.Wait();
+
+            theTopic.LastEventId.ShouldEqual(e2.Id);
+        }
+
     }
 
     public class RecordingServerEventWriter : IServerEventWriter, IClientConnectivity
     {
-        public readonly IList<ServerEvent> Events = new List<ServerEvent>();
+        public readonly IList<IServerEvent> Events = new List<IServerEvent>();
 
-        public void WriteData(string data, string id, string @event, int? retry)
+        public int? FailOnNthWrite { get; set; }
+        private int _writeCount;
+
+        public bool WriteData(Func<object> getData, string id, string @event, int? retry)
         {
             throw new NotImplementedException();
         }
 
-        public void Write(ServerEvent @event)
+        public bool Write(IServerEvent @event)
         {
+            _writeCount++;
+
+            if (FailOnNthWrite.HasValue && FailOnNthWrite.Value == _writeCount)
+                return false;
+
             Events.Add(@event);
+            return true;
         }
 
         public Func<bool> ConnectedTest = () => true;

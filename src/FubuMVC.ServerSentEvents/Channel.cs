@@ -25,17 +25,17 @@ namespace FubuMVC.ServerSentEvents
         {
             _lock.Write(() =>
             {
-                _outstandingRequests.Each(x => x.Source.SetResult(Enumerable.Empty<ServerEvent>()));
+                _outstandingRequests.Each(x => x.Source.SetResult(Enumerable.Empty<IServerEvent>()));
 
                 _isConnected = false;
             });
         }
 
-        public Task<IEnumerable<ServerEvent>> FindEvents(TTopic topic)
+        public Task<IEnumerable<IServerEvent>> FindEvents(TTopic topic)
         {
             var events = _lock.Read(() => _queue.FindQueuedEvents(topic));
 
-            var source = new TaskCompletionSource<IEnumerable<ServerEvent>>();
+            var source = new TaskCompletionSource<IEnumerable<IServerEvent>>(TaskCreationOptions.AttachedToParent);
             if (events.Any())
             {
                 source.SetResult(events);
@@ -75,13 +75,13 @@ namespace FubuMVC.ServerSentEvents
 
         public class QueuedRequest
         {
-            public QueuedRequest(TaskCompletionSource<IEnumerable<ServerEvent>> source, TTopic topic)
+            public QueuedRequest(TaskCompletionSource<IEnumerable<IServerEvent>> source, TTopic topic)
             {
                 Source = source;
                 Topic = topic;
             }
 
-            public TaskCompletionSource<IEnumerable<ServerEvent>> Source { get; private set; }
+            public TaskCompletionSource<IEnumerable<IServerEvent>> Source { get; private set; }
             public TTopic Topic { get; private set; }
         }
 
