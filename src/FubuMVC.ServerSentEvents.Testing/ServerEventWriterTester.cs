@@ -16,7 +16,7 @@ namespace FubuMVC.ServerSentEvents.Testing
         [Test]
         public void should_write_the_content_type_on_the_first_call_to_write_data()
         {
-            ClassUnderTest.WriteData("something");
+            ClassUnderTest.WriteData(() => "something");
 
             MockFor<IOutputWriter>().AssertWasCalled(x => x.ContentType(MimeType.EventStream));
         }
@@ -24,11 +24,11 @@ namespace FubuMVC.ServerSentEvents.Testing
         [Test]
         public void should_flush_after_each_write()
         {
-            ClassUnderTest.WriteData("something");
+            ClassUnderTest.WriteData(() => "something");
 
             MockFor<IOutputWriter>().AssertWasCalled(x => x.Flush());
 
-            ClassUnderTest.WriteData("else");
+            ClassUnderTest.WriteData(() => "else");
 
             MockFor<IOutputWriter>().AssertWasCalled(x => x.Flush(), x => x.Repeat.Twice());
 
@@ -37,12 +37,12 @@ namespace FubuMVC.ServerSentEvents.Testing
         [Test]
         public void only_writes_the_mimetype_once()
         {
-            ClassUnderTest.WriteData("something");
-            ClassUnderTest.WriteData("something");
-            ClassUnderTest.WriteData("something");
-            ClassUnderTest.WriteData("something");
-            ClassUnderTest.WriteData("something");
-            ClassUnderTest.WriteData("something");
+            ClassUnderTest.WriteData(() => "something");
+            ClassUnderTest.WriteData(() => "something");
+            ClassUnderTest.WriteData(() => "something");
+            ClassUnderTest.WriteData(() => "something");
+            ClassUnderTest.WriteData(() => "something");
+            ClassUnderTest.WriteData(() => "something");
 
             MockFor<IOutputWriter>().AssertWasCalled(x => x.ContentType(MimeType.EventStream), x => x.Repeat.Once());
         }

@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Text;
 using FubuMVC.Core.Runtime;
@@ -21,7 +22,7 @@ namespace FubuMVC.ServerSentEvents
             _writer = writer;
         }
 
-        public void WriteData(string data, string id = null, string @event = null, int? retry = null)
+        public void WriteData(Func<object> getData, string id = null, string @event = null, int? retry = null)
         {
             if (_first)
             {
@@ -45,7 +46,7 @@ namespace FubuMVC.ServerSentEvents
             }
             
             writeProp(builder, Retry, retry);
-            writeProp(builder, Data, data);
+            writeProp(builder, Data, getData());
             builder.Append("\n");
 
             _writer.Write(builder.ToString());
@@ -56,9 +57,9 @@ namespace FubuMVC.ServerSentEvents
             _writer.Flush();
         }
 
-        public void Write(ServerEvent @event)
+        public void Write(IServerEvent @event)
         {
-            WriteData(@event.Data, @event.Id, @event.Event, @event.Retry);
+            WriteData(@event.GetData, @event.Id, @event.Event, @event.Retry);
         }
 
         private static void writeProp(StringBuilder builder, string flag, object text)

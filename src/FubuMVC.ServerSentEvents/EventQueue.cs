@@ -5,24 +5,24 @@ namespace FubuMVC.ServerSentEvents
 {
     public class EventQueue<T> : IEventQueue<T> where T : Topic
     {
-        private readonly ServerEventList<ServerEvent> _events = new ServerEventList<ServerEvent>();
+        private readonly ServerEventList<IServerEvent> _events = new ServerEventList<IServerEvent>();
 
         public void Clear()
         {
             _events.AllEvents.Clear();
         }
 
-        public IList<ServerEvent> AllEvents
+        public IList<IServerEvent> AllEvents
         {
             get { return _events.AllEvents; }
         }
 
-        public IEnumerable<ServerEvent> FindQueuedEvents(T topic)
+        public IEnumerable<IServerEvent> FindQueuedEvents(T topic)
         {
             return _events.FindQueuedEvents(topic);
         }
 
-        public void Write(params ServerEvent[] events)
+        public void Write(params IServerEvent[] events)
         {
             _events.Add(events);
         }

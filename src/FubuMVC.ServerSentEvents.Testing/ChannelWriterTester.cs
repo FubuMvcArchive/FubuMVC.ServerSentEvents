@@ -13,11 +13,11 @@ namespace FubuMVC.ServerSentEvents.Testing
         private IChannel<FakeTopic> theChannel;
         private ChannelWriter<FakeTopic> theChannelWriter;
         private RecordingServerEventWriter theWriter;
-        private ServerEvent e1;
-        private ServerEvent e2;
-        private ServerEvent e3;
-        private ServerEvent e4;
-        private ServerEvent e5;
+        private IServerEvent e1;
+        private IServerEvent e2;
+        private IServerEvent e3;
+        private IServerEvent e4;
+        private IServerEvent e5;
         private FakeTopic theTopic = new FakeTopic();
 
         [SetUp]
@@ -93,14 +93,14 @@ namespace FubuMVC.ServerSentEvents.Testing
 
     public class RecordingServerEventWriter : IServerEventWriter, IClientConnectivity
     {
-        public readonly IList<ServerEvent> Events = new List<ServerEvent>();
+        public readonly IList<IServerEvent> Events = new List<IServerEvent>();
 
-        public void WriteData(string data, string id, string @event, int? retry)
+        public void WriteData(Func<object> getData, string id, string @event, int? retry)
         {
             throw new NotImplementedException();
         }
 
-        public void Write(ServerEvent @event)
+        public void Write(IServerEvent @event)
         {
             Events.Add(@event);
         }
