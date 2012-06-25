@@ -45,7 +45,7 @@ namespace FubuMVC.ServerSentEvents
 
         public Task Write(T topic)
         {
-            return Task.Factory.StartNew(() => WriteMessages(topic));
+            return Task.Factory.StartNew(() => WriteMessages(topic), TaskCreationOptions.AttachedToParent | TaskCreationOptions.LongRunning);
         }
     }
 }

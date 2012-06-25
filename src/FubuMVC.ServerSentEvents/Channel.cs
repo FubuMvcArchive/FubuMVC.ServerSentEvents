@@ -35,7 +35,7 @@ namespace FubuMVC.ServerSentEvents
         {
             var events = _lock.Read(() => _queue.FindQueuedEvents(topic));
 
-            var source = new TaskCompletionSource<IEnumerable<IServerEvent>>();
+            var source = new TaskCompletionSource<IEnumerable<IServerEvent>>(TaskCreationOptions.AttachedToParent);
             if (events.Any())
             {
                 source.SetResult(events);
