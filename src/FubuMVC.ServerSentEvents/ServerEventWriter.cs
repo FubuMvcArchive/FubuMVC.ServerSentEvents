@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using FubuMVC.Core.Runtime;
 using FubuCore;
+using HtmlTags;
 
 namespace FubuMVC.ServerSentEvents
 {
@@ -15,7 +16,6 @@ namespace FubuMVC.ServerSentEvents
 
         private readonly IOutputWriter _writer;
         private bool _first = true;
-
 
         public ServerEventWriter(IOutputWriter writer)
         {
@@ -46,7 +46,7 @@ namespace FubuMVC.ServerSentEvents
             }
             
             writeProp(builder, Retry, retry);
-            writeProp(builder, Data, getData());
+            writeProp(builder, Data, JsonUtil.ToJson(getData()));
             builder.Append("\n");
 
             _writer.Write(builder.ToString());
