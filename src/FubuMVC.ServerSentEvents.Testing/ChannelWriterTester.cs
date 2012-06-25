@@ -18,7 +18,7 @@ namespace FubuMVC.ServerSentEvents.Testing
         private IServerEvent e3;
         private IServerEvent e4;
         private IServerEvent e5;
-        private FakeTopic theTopic = new FakeTopic();
+        private FakeTopic theTopic;
 
         [SetUp]
         public void SetUp()
@@ -28,6 +28,7 @@ namespace FubuMVC.ServerSentEvents.Testing
             var cache = MockRepository.GenerateMock<ITopicChannelCache>();
             var channel = new TopicChannel<FakeTopic>(new EventQueue<FakeTopic>());
             theChannel = channel.Channel;
+            theTopic = new FakeTopic();
 
             cache.Stub(x => x.ChannelFor(theTopic)).Return(channel);
 
