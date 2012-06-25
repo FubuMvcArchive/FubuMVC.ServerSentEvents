@@ -46,6 +46,19 @@ namespace FubuMVC.ServerSentEvents.Testing
 
             MockFor<IOutputWriter>().AssertWasCalled(x => x.ContentType(MimeType.EventStream), x => x.Repeat.Once());
         }
+
+        [Test]
+        public void returns_true_on_successful_write()
+        {
+            ClassUnderTest.WriteData(() => "something").ShouldBeTrue();
+        }
+
+        [Test]
+        public void returns_false_when_an_HttpException_occurs_on_flush()
+        {
+            MockFor<IOutputWriter>().Stub(x => x.Flush()).Throw(new HttpException());
+            ClassUnderTest.WriteData(() => "something").ShouldBeFalse();
+        }
     }
 
     [TestFixture]
@@ -65,21 +78,21 @@ namespace FubuMVC.ServerSentEvents.Testing
         public void write_only_data_and_id()
         {
             writer.Write(new ServerEvent("the id", "the data"));
-            output.Text.ShouldEqual("id: the id\ndata: the data\n\n");
+            output.Text.ShouldEqual("id: the id\ndata: \"the data\"\n\n");
         }
 
         [Test]
         public void write_with_id_data_and_event()
         {
             writer.Write(new ServerEvent("the id", "the data"){Event = "something"});
-            output.Text.ShouldEqual("id: the id/something\ndata: the data\n\n");  
+            output.Text.ShouldEqual("id: the id/something\ndata: \"the data\"\n\n");  
         }
 
         [Test]
         public void write_with_id_data_and_event_and_retry()
         {
             writer.Write(new ServerEvent("the id", "the data") { Event = "something", Retry = 1000});
-            output.Text.ShouldEqual("id: the id/something\nretry: 1000\ndata: the data\n\n");
+            output.Text.ShouldEqual("id: the id/something\nretry: 1000\ndata: \"the data\"\n\n");
         }
     }
 

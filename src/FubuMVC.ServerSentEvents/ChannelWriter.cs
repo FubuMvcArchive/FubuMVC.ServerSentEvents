@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FubuMVC.Core.Http;
@@ -33,11 +32,13 @@ namespace FubuMVC.ServerSentEvents
                 }
 
                 var messages = task.Result;
-                messages.Each(x => _writer.Write(x));
+                var lastSuccessfulMessage = messages
+                    .TakeWhile(x => _writer.Write(x))
+                    .LastOrDefault();
 
-                if (messages.Any())
+                if (lastSuccessfulMessage != null)
                 {
-                    topic.LastEventId = messages.Last().Id;
+                    topic.LastEventId = lastSuccessfulMessage.Id;
                 }
             }
         }

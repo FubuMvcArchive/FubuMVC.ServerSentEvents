@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Text;
+using System.Web;
 using FubuMVC.Core.Runtime;
 using FubuCore;
 using HtmlTags;
@@ -22,7 +23,7 @@ namespace FubuMVC.ServerSentEvents
             _writer = writer;
         }
 
-        public void WriteData(Func<object> getData, string id = null, string @event = null, int? retry = null)
+        public bool WriteData(Func<object> getData, string id = null, string @event = null, int? retry = null)
         {
             if (_first)
             {
@@ -54,12 +55,21 @@ namespace FubuMVC.ServerSentEvents
             // TEMPORARY
             Debug.WriteLine(builder.ToString());
 
-            _writer.Flush();
+            try
+            {
+                _writer.Flush();
+                return true;
+            }
+            // It is possible to receive this exception if the client connection has been lost.
+            catch (HttpException)
+            {
+                return false;
+            }
         }
 
-        public void Write(IServerEvent @event)
+        public bool Write(IServerEvent @event)
         {
-            WriteData(@event.GetData, @event.Id, @event.Event, @event.Retry);
+            return WriteData(@event.GetData, @event.Id, @event.Event, @event.Retry);
         }
 
         private static void writeProp(StringBuilder builder, string flag, object text)
