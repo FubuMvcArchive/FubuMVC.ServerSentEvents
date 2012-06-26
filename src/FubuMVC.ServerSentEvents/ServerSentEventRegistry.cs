@@ -10,6 +10,7 @@ namespace FubuMVC.ServerSentEvents
             SetServiceIfNone(typeof (IEventQueueFactory<>), typeof (EventQueueFactory<>));
             SetServiceIfNone<IServerEventWriter, ServerEventWriter>();
             SetServiceIfNone<ITopicChannelCache, TopicChannelCache>();
+			SetServiceIfNone<IDataFormatter, DataFormatter>();
         }
     }
 }
