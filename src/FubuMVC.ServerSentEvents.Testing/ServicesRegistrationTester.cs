@@ -30,7 +30,7 @@ namespace FubuMVC.ServerSentEvents.Testing
         public void default_open_type_of_IEventQueueFactory()
         {
             services.DefaultServiceFor(typeof(IEventQueueFactory<>))
-                .Type.ShouldEqual(typeof(EventQueueFactory<>));
+                .Type.ShouldEqual(typeof(DefaultEventQueueFactory<>));
         }
 
         [Test]

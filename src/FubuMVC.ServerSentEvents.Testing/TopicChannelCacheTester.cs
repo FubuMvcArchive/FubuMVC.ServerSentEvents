@@ -9,16 +9,14 @@ namespace FubuMVC.ServerSentEvents.Testing
     public class TopicChannelCacheTester
     {
         private TopicChannelCache theCache;
+        private IContainer _container;
 
         [SetUp]
         public void SetUp()
         {
-            IContainer container = new Container(x =>
-            {
-                x.For(typeof(IEventQueueFactory<>)).Use(typeof(EventQueueFactory<>));
-            });
+            _container = new Container(x => x.For(typeof(IEventQueueFactory<>)).Use(typeof(DefaultEventQueueFactory<>)));
 
-            var services = new StructureMapServiceLocator(container);
+            var services = new StructureMapServiceLocator(_container);
 
             theCache = new TopicChannelCache(services);
         }

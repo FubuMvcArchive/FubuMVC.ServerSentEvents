@@ -1,5 +1,3 @@
-using System;
-using FubuCore.Util;
 using FubuMVC.Core;
 using NUnit.Framework;
 using FubuTestingSupport;
@@ -13,7 +11,7 @@ namespace FubuMVC.ServerSentEvents.Testing
         [Test]
         public void builds_and_caches_by_topic()
         {
-            var factory = new EventQueueFactory<FakeTopic>();
+            var factory = new DefaultEventQueueFactory<FakeTopic>();
             var family = new TopicFamily<FakeTopic>(factory);
 
             var topic1 = new FakeTopic{
