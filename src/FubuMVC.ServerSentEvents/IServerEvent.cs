@@ -5,6 +5,6 @@ namespace FubuMVC.ServerSentEvents
         string Id { get; }
         string Event { get; }
         int? Retry { get; }
-        object GetData();
+        object Data { get; }
     }
 }

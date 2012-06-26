@@ -25,7 +25,7 @@ namespace FubuMVC.ServerSentEvents
         	_formatter = formatter;
         }
 
-		public bool WriteData(Func<object> getData, string id = null, string @event = null, int? retry = null)
+        public bool WriteData(object data, string id = null, string @event = null, int? retry = null)
         {
             if (_first)
             {
@@ -49,7 +49,7 @@ namespace FubuMVC.ServerSentEvents
             }
             
             writeProp(builder, Retry, retry);
-			writeProp(builder, Data, _formatter.DataFor(getData()));
+			writeProp(builder, Data, _formatter.DataFor(data));
             builder.Append("\n");
 
             _writer.Write(builder.ToString());
@@ -71,7 +71,7 @@ namespace FubuMVC.ServerSentEvents
 
         public bool Write(IServerEvent @event)
         {
-            return WriteData(@event.GetData, @event.Id, @event.Event, @event.Retry);
+            return WriteData(@event.Data, @event.Id, @event.Event, @event.Retry);
         }
 
         private static void writeProp(StringBuilder builder, string flag, object text)
