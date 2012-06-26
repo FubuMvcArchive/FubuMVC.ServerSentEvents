@@ -71,7 +71,7 @@ namespace FubuMVC.ServerSentEvents.Testing
         public void SetUp()
         {
             output = new RecordingOutputWriter();
-            writer = new ServerEventWriter(output);
+            writer = new ServerEventWriter(output, new DataFormatter());
         }
 
         [Test]

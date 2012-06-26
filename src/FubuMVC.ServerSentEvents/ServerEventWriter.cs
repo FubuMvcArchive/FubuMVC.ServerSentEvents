@@ -8,7 +8,7 @@ using HtmlTags;
 
 namespace FubuMVC.ServerSentEvents
 {
-    public class ServerEventWriter : IServerEventWriter
+	public class ServerEventWriter : IServerEventWriter
     {
         public readonly string Data = "data: ";
         public readonly string Event = "event: ";
@@ -16,14 +16,16 @@ namespace FubuMVC.ServerSentEvents
         public readonly string Retry = "retry: ";
 
         private readonly IOutputWriter _writer;
+		private readonly IDataFormatter _formatter;
         private bool _first = true;
 
-        public ServerEventWriter(IOutputWriter writer)
+        public ServerEventWriter(IOutputWriter writer, IDataFormatter formatter)
         {
-            _writer = writer;
+        	_writer = writer;
+        	_formatter = formatter;
         }
 
-        public bool WriteData(Func<object> getData, string id = null, string @event = null, int? retry = null)
+		public bool WriteData(Func<object> getData, string id = null, string @event = null, int? retry = null)
         {
             if (_first)
             {
@@ -47,7 +49,7 @@ namespace FubuMVC.ServerSentEvents
             }
             
             writeProp(builder, Retry, retry);
-            writeProp(builder, Data, JsonUtil.ToJson(getData()));
+			writeProp(builder, Data, _formatter.DataFor(getData()));
             builder.Append("\n");
 
             _writer.Write(builder.ToString());

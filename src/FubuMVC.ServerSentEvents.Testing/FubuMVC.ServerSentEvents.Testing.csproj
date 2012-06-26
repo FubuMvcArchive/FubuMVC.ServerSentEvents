@@ -82,6 +82,7 @@
   <ItemGroup>
     <Compile Include="AssemblyNeedsTheFubuModuleAttribute.cs" />
     <Compile Include="ChannelTester.cs" />
+    <Compile Include="DataFormatterTester.cs" />
     <Compile Include="EventPublisherTester.cs" />
     <Compile Include="ChannelWriterTester.cs" />
     <Compile Include="ServerEventWriterTester.cs" />

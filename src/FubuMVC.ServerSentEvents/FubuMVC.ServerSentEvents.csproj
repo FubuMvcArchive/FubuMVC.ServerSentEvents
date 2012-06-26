@@ -65,6 +65,7 @@
     <Compile Include="Channel.cs" />
     <Compile Include="ChannelWriter.cs" />
     <Compile Include="EventPublisher.cs" />
+    <Compile Include="IDataFormatter.cs" />
     <Compile Include="IServerEvent.cs" />
     <Compile Include="ServerEventList.cs" />
     <Compile Include="ServerSentEventRegistry.cs" />
