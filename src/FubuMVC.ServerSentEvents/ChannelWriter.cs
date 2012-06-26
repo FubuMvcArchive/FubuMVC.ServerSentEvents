@@ -1,4 +1,6 @@
+using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FubuMVC.Core.Http;
 
@@ -20,26 +22,36 @@ namespace FubuMVC.ServerSentEvents
         public void WriteMessages(T topic)
         {
             var channel = _cache.ChannelFor(topic).Channel;
-            
+
             while (_connectivity.IsClientConnected() && channel.IsConnected())
             {
                 var task = channel.FindEvents(topic);
 
-                // TODO -- Needs to deal w/ timeouts
-                while (!task.Wait(1000))
-                {
-                    if (!_connectivity.IsClientConnected()) return;
-                }
+                var waitHandle = new ManualResetEvent(false);
 
-                var messages = task.Result;
-                var lastSuccessfulMessage = messages
-                    .TakeWhile(x => _writer.Write(x))
-                    .LastOrDefault();
-
-                if (lastSuccessfulMessage != null)
+                task.ContinueWith(x =>
                 {
-                    topic.LastEventId = lastSuccessfulMessage.Id;
-                }
+                    if (!_connectivity.IsClientConnected())
+                    {
+                        waitHandle.Set();
+                        return;
+                    }
+
+                    var messages = task.Result;
+                    var lastSuccessfulMessage = messages
+                        .TakeWhile(y => _writer.Write(y))
+                        .LastOrDefault();
+
+                    if (lastSuccessfulMessage != null)
+                    {
+                        topic.LastEventId = lastSuccessfulMessage.Id;
+                    }
+
+                    waitHandle.Set();
+                }, TaskContinuationOptions.AttachedToParent);
+
+                //This reduces blocking to only occur on the dedicated long running task.
+                waitHandle.WaitOne(TimeSpan.FromSeconds(1), false);
             }
         }
 
