@@ -1,1 +1,0 @@
-FubuMVC.ServerSentEvents.Testing
