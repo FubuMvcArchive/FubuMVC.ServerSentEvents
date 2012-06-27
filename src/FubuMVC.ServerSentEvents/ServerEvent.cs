@@ -8,14 +8,9 @@ namespace FubuMVC.ServerSentEvents
             Data = data;
         }
 
-        public string Data { get; private set; }
+        public object Data { get; private set; }
         public string Id { get; private set; }
         public string Event { get; set; }
         public int? Retry { get; set; }
-
-        public object GetData()
-        {
-            return Data;
-        }
     }
 }

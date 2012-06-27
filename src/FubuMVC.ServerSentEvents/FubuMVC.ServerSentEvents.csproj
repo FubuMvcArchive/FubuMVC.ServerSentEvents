@@ -64,6 +64,7 @@
   <ItemGroup>
     <Compile Include="Channel.cs" />
     <Compile Include="ChannelWriter.cs" />
+    <Compile Include="DefaultEventQueueFactory.cs" />
     <Compile Include="EventPublisher.cs" />
     <Compile Include="IDataFormatter.cs" />
     <Compile Include="IServerEvent.cs" />
@@ -81,7 +82,7 @@
     <Compile Include="ServerEvent.cs" />
     <Compile Include="ServerEventWriter.cs" />
     <Compile Include="EventQueue.cs" />
-    <Compile Include="SimpleEventQueueFactory.cs" />
+    <Compile Include="EventQueueFactory.cs" />
     <Compile Include="Topic.cs" />
     <Compile Include="TopicChannel.cs" />
     <Compile Include="TopicFamily.cs" />

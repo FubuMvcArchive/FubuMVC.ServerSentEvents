@@ -116,7 +116,7 @@ namespace FubuMVC.ServerSentEvents.Testing
         public int? FailOnNthWrite { get; set; }
         private int _writeCount;
 
-        public bool WriteData(Func<object> getData, string id, string @event, int? retry)
+        public bool WriteData(object data, string id, string @event, int? retry)
         {
             throw new NotImplementedException();
         }
