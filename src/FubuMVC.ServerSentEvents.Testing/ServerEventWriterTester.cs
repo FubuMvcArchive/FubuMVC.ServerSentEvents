@@ -59,6 +59,13 @@ namespace FubuMVC.ServerSentEvents.Testing
             MockFor<IOutputWriter>().Stub(x => x.Flush()).Throw(new HttpException());
             ClassUnderTest.WriteData("something").ShouldBeFalse();
         }
+
+		[Test]
+		public void returns_false_when_an_AccessViolationException_occurs_on_flush()
+		{
+			MockFor<IOutputWriter>().Stub(x => x.Flush()).Throw(new AccessViolationException());
+			ClassUnderTest.WriteData("something").ShouldBeFalse();
+		}
     }
 
     [TestFixture]
