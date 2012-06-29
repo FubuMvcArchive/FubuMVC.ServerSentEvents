@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using FubuMVC.Core.Http;
 using NUnit.Framework;
 using Rhino.Mocks;
@@ -107,6 +108,23 @@ namespace FubuMVC.ServerSentEvents.Testing
             theTopic.LastEventId.ShouldEqual(e2.Id);
         }
 
+        [Test]
+        public void threading_delays_dont_cause_events_to_be_written_multiple_times()
+        {
+            var task = theChannelWriter.Write(theTopic);
+
+            task.Wait(2500);
+
+            theChannel.Write(q =>
+            {
+                q.Write(e1);
+            });
+
+            task.Wait(1000);
+
+            theTopic.LastEventId.ShouldEqual(e1.Id);
+            theWriter.Events.ShouldHaveTheSameElementsAs(e1);
+        }
     }
 
     public class RecordingServerEventWriter : IServerEventWriter, IClientConnectivity
