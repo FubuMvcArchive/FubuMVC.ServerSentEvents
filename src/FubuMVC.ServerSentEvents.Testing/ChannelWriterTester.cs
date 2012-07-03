@@ -1,13 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
+using FubuCore;
 using FubuMVC.Core.Http;
 using NUnit.Framework;
 using Rhino.Mocks;
 using FubuTestingSupport;
+using System.Linq;
 
 namespace FubuMVC.ServerSentEvents.Testing
 {
+
     [TestFixture]
     public class ChannelWriterTester
     {
@@ -45,16 +49,13 @@ namespace FubuMVC.ServerSentEvents.Testing
         [Test]
         public void simple_scenario_when_there_are_already_events_queued_up()
         {
-            theChannel.Write(q =>
-            {
-                q.Write(e1, e2, e3);
-            });
+            theChannel.Write(q => q.Write(e1, e2, e3));
 
             theWriter.ConnectedTest = () => !theWriter.Events.Contains(e3);
 
             var task = theChannelWriter.Write(theTopic);
 
-            task.Wait();
+            task.Wait(150).ShouldBeTrue();
 
             theWriter.Events.ShouldHaveTheSameElementsAs(e1, e2, e3);
         }
@@ -62,31 +63,69 @@ namespace FubuMVC.ServerSentEvents.Testing
         [Test]
         public void polls_for_new_events()
         {
-            theChannel.Write(q =>
-            {
-                q.Write(e1, e2);
-            });
+            theChannel.Write(q => q.Write(e1, e2));
 
             theWriter.ConnectedTest = () => !theWriter.Events.Contains(e5);
 
             var task = theChannelWriter.Write(theTopic);
 
+            task.Wait(15);
             theChannel.Write(q => q.Write(e3, e4));
+            task.Wait(15);
             theChannel.Write(q => q.Write(e5));
 
-            task.Wait();
+            task.Wait(150).ShouldBeTrue();
 
             theWriter.Events.ShouldHaveTheSameElementsAs(e1, e2, e3, e4, e5);
         }
 
         [Test]
-        public void stops_polling_when_the_client_disconnects()
+        public void does_not_poll_when_the_client_is_initially_disconnected()
         {
             theWriter.ConnectedTest = () => false;
 
-            theChannelWriter.Write(theTopic).Wait();
+            var task = theChannelWriter.Write(theTopic);
 
-            // If you finish, you've succeeded
+            task.Wait(15).ShouldBeTrue();
+        }
+
+        [Test]
+        public void does_not_write_poll_results_if_the_client_has_disconnected()
+        {
+            var task = theChannelWriter.Write(theTopic);
+
+            task.Wait(150).ShouldBeFalse();
+
+            theWriter.ForceClientDisconnect();
+
+            theChannel.Write(q => q.Write(e1));
+
+            task.Wait(15).ShouldBeTrue();
+
+            theWriter.Events.ShouldHaveCount(0);
+        }
+
+        [Test]
+        public void does_not_poll_when_the_channel_is_initially_disconnected()
+        {
+            theChannel.Flush();
+
+            var task = theChannelWriter.Write(theTopic);
+
+            task.Wait(15).ShouldBeTrue();
+        }
+
+        [Test]
+        public void does_not_poll_when_the_channel_is_disconnected_after_initial_poll()
+        {
+            var task = theChannelWriter.Write(theTopic);
+
+            task.Wait(500).ShouldBeFalse();
+
+            theChannel.Flush();
+
+            task.Wait(15).ShouldBeTrue();
+            theWriter.Events.ShouldHaveCount(0);
         }
 
         [Test]
@@ -94,45 +133,47 @@ namespace FubuMVC.ServerSentEvents.Testing
         {
             theWriter.FailOnNthWrite = 3;
 
-            theChannel.Write(q =>
-            {
-                q.Write(e1, e2, e3);
-            });
+            theChannel.Write(q => q.Write(e1, e2, e3));
 
             theWriter.ConnectedTest = () => !theWriter.Events.Contains(e2);
 
             var task = theChannelWriter.Write(theTopic);
 
-            task.Wait();
+            task.Wait(15).ShouldBeTrue();
 
             theTopic.LastEventId.ShouldEqual(e2.Id);
         }
 
         [Test]
-        public void threading_delays_dont_cause_events_to_be_written_multiple_times()
+        public void parent_task_is_faulted_when_writer_throws_exception()
         {
-            var task = theChannelWriter.Write(theTopic);
+            theWriter.WriterThrows = true;
 
-            task.Wait(2500);
-
-            theChannel.Write(q =>
+            var testTask = new Task(() =>
             {
-                q.Write(e1);
+                theChannelWriter.Write(theTopic);
+                theChannel.Write(q => q.Write(e1));
             });
 
-            task.Wait(1000);
+            testTask.RunSynchronously();
 
-            theTopic.LastEventId.ShouldEqual(e1.Id);
-            theWriter.Events.ShouldHaveTheSameElementsAs(e1);
+            testTask.IsFaulted.ShouldBeTrue();
         }
     }
 
     public class RecordingServerEventWriter : IServerEventWriter, IClientConnectivity
     {
-        public readonly IList<IServerEvent> Events = new List<IServerEvent>();
+        private readonly IList<IServerEvent> _events = new List<IServerEvent>();
+        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
 
         public int? FailOnNthWrite { get; set; }
-        private int _writeCount;
+
+        public bool WriterThrows { get; set; }
+
+        public IList<IServerEvent> Events
+        {
+            get { return _lock.Read(() => _events.ToList()); }
+        }
 
         public bool WriteData(object data, string id, string @event, int? retry)
         {
@@ -141,12 +182,13 @@ namespace FubuMVC.ServerSentEvents.Testing
 
         public bool Write(IServerEvent @event)
         {
-            _writeCount++;
+            if (WriterThrows)
+                throw new Exception();
 
-            if (FailOnNthWrite.HasValue && FailOnNthWrite.Value == _writeCount)
+            if (FailOnNthWrite.HasValue && FailOnNthWrite.Value == _lock.Read(() => _events.Count + 1))
                 return false;
 
-            Events.Add(@event);
+            _lock.Write(() => _events.Add(@event));
             return true;
         }
 
@@ -154,9 +196,16 @@ namespace FubuMVC.ServerSentEvents.Testing
 
         public IList<Action> QueuedActions = new List<Action>();
 
+        private long _forceDisconnect;
+
         public bool IsClientConnected()
         {
-            return ConnectedTest();
+            return ConnectedTest() && Interlocked.Read(ref _forceDisconnect) == 0;
+        }
+
+        public void ForceClientDisconnect()
+        {
+            Interlocked.Increment(ref _forceDisconnect);
         }
     }
 }
