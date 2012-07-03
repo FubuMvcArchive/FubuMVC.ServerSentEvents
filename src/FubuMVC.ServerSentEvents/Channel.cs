@@ -26,6 +26,7 @@ namespace FubuMVC.ServerSentEvents
             _lock.Write(() =>
             {
                 _outstandingRequests.Each(x => x.Source.SetResult(Enumerable.Empty<IServerEvent>()));
+                _outstandingRequests.Clear();
 
                 _isConnected = false;
             });

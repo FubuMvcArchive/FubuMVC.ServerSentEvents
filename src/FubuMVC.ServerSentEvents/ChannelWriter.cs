@@ -1,6 +1,4 @@
-using System;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using FubuMVC.Core.Http;
 
@@ -11,6 +9,8 @@ namespace FubuMVC.ServerSentEvents
         private readonly IClientConnectivity _connectivity;
         private readonly IServerEventWriter _writer;
         private readonly ITopicChannelCache _cache;
+        private IChannel<T> _channel;
+        private T _topic;
 
         public ChannelWriter(IClientConnectivity connectivity, IServerEventWriter writer, ITopicChannelCache cache)
         {
@@ -19,45 +19,40 @@ namespace FubuMVC.ServerSentEvents
             _cache = cache;
         }
 
-        public void WriteMessages(T topic)
+        public void WriteMessages()
         {
-            var channel = _cache.ChannelFor(topic).Channel;
+            if (!_connectivity.IsClientConnected() || !_channel.IsConnected())
+                return;
 
-            while (_connectivity.IsClientConnected() && channel.IsConnected())
+            var task = _channel.FindEvents(_topic);
+
+            task.ContinueWith(x =>
             {
-                var task = channel.FindEvents(topic);
+                if (!_connectivity.IsClientConnected())
+                    return;
 
-                var waitHandle = new ManualResetEvent(false);
+                var messages = x.Result;
+                var lastSuccessfulMessage = messages
+                    .TakeWhile(y => _writer.Write(y))
+                    .LastOrDefault();
 
-                task.ContinueWith(x =>
+                if (lastSuccessfulMessage != null)
                 {
-                    if (!_connectivity.IsClientConnected())
-                    {
-                        waitHandle.Set();
-                        return;
-                    }
+                    _topic.LastEventId = lastSuccessfulMessage.Id;
+                }
 
-                    var messages = task.Result;
-                    var lastSuccessfulMessage = messages
-                        .TakeWhile(y => _writer.Write(y))
-                        .LastOrDefault();
-
-                    if (lastSuccessfulMessage != null)
-                    {
-                        topic.LastEventId = lastSuccessfulMessage.Id;
-                    }
-
-                    waitHandle.Set();
-                }, TaskContinuationOptions.AttachedToParent);
-
-                //This reduces blocking to only occur on the dedicated long running task.
-                waitHandle.WaitOne(TimeSpan.FromSeconds(1), false);
-            }
+                WriteMessages();
+            }, TaskContinuationOptions.AttachedToParent);
         }
 
         public Task Write(T topic)
         {
-            return Task.Factory.StartNew(() => WriteMessages(topic), TaskCreationOptions.AttachedToParent | TaskCreationOptions.LongRunning);
+            return Task.Factory.StartNew(() =>
+            {
+                _topic = topic;
+                _channel = _cache.ChannelFor(topic).Channel;
+                WriteMessages();
+            }, TaskCreationOptions.AttachedToParent);
         }
     }
 }
