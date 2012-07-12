@@ -34,19 +34,22 @@ namespace FubuMVC.ServerSentEvents
 
         public Task<IEnumerable<IServerEvent>> FindEvents(TTopic topic)
         {
-            var events = _lock.Read(() => _queue.FindQueuedEvents(topic));
-
-            var source = new TaskCompletionSource<IEnumerable<IServerEvent>>(TaskCreationOptions.AttachedToParent);
-            if (events.Any())
+            return _lock.Read(() =>
             {
-                source.SetResult(events);
-            }
-            else
-            {
-                _lock.Write(() => _outstandingRequests.Add(new QueuedRequest(source, topic)));
-            }
+                var events = _queue.FindQueuedEvents(topic);
 
-            return source.Task;
+                var source = new TaskCompletionSource<IEnumerable<IServerEvent>>(TaskCreationOptions.AttachedToParent);
+                if (events.Any())
+                {
+                    source.SetResult(events);
+                }
+                else
+                {
+                    _outstandingRequests.Add(new QueuedRequest(source, topic));
+                }
+
+                return source.Task;
+            });
         }
 
         public void Write(Action<IEventQueue<TTopic>> action)
