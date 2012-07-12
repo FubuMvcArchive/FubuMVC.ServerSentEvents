@@ -10,7 +10,7 @@ namespace FubuMVC.ServerSentEvents
     public class Channel<TTopic> : IChannel<TTopic> where TTopic : Topic
     {
         private readonly IEventQueue<TTopic> _queue;
-        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         
         private readonly IList<QueuedRequest> _outstandingRequests = new List<QueuedRequest>();
         private bool _isConnected;
@@ -34,17 +34,10 @@ namespace FubuMVC.ServerSentEvents
 
         public Task<IEnumerable<IServerEvent>> FindEvents(TTopic topic)
         {
-            var events = _lock.Read(() => _queue.FindQueuedEvents(topic));
+            var source = new TaskCompletionSource<IEnumerable<IServerEvent>>();
 
-            var source = new TaskCompletionSource<IEnumerable<IServerEvent>>(TaskCreationOptions.AttachedToParent);
-            if (events.Any())
-            {
-                source.SetResult(events);
-            }
-            else
-            {
-                _lock.Write(() => _outstandingRequests.Add(new QueuedRequest(source, topic)));
-            }
+            if (!FindEventsReadLockOnly(topic, source))
+                FindEventsWithWriteLock(topic, source);
 
             return source.Task;
         }
@@ -61,6 +54,28 @@ namespace FubuMVC.ServerSentEvents
         public bool IsConnected()
         {
             return _isConnected;
+        }
+
+        private bool FindEventsReadLockOnly(TTopic topic, TaskCompletionSource<IEnumerable<IServerEvent>> source)
+        {
+            var events = _lock.Read(() => _queue.FindQueuedEvents(topic));
+
+            if (!events.Any())
+                return false;
+
+            source.SetResult(events);
+            return true;
+        }
+
+        private void FindEventsWithWriteLock(TTopic topic, TaskCompletionSource<IEnumerable<IServerEvent>> source)
+        {
+            _lock.Write(() =>
+            {
+                if (!FindEventsReadLockOnly(topic, source))
+                {
+                    _outstandingRequests.Add(new QueuedRequest(source, topic));
+                }
+            });
         }
 
         private void publishToListeners()
