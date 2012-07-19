@@ -159,6 +159,26 @@ namespace FubuMVC.ServerSentEvents.Testing
 
             testTask.IsFaulted.ShouldBeTrue();
         }
+
+        [Test]
+        public void does_not_produce_stack_overflow_exception()
+        {
+            var parentTask = new Task(() => theChannelWriter.Write(theTopic));
+
+            parentTask.Start();
+
+            var startTime = DateTime.Now;
+            while (DateTime.Now - startTime < TimeSpan.FromSeconds(15))
+            {
+                theChannel.Write(q => q.Write(e1));
+                Thread.Sleep(2);
+            }
+
+            theWriter.ForceClientDisconnect();
+            theChannel.Flush();
+
+            parentTask.Wait(5000).ShouldBeTrue();
+        }
     }
 
     public class RecordingServerEventWriter : IServerEventWriter, IClientConnectivity
