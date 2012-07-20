@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FubuCore;
 using FubuMVC.Core.Http;
+using FubuMVC.Core.Runtime;
 using NUnit.Framework;
 using Rhino.Mocks;
 using FubuTestingSupport;
@@ -11,7 +12,6 @@ using System.Linq;
 
 namespace FubuMVC.ServerSentEvents.Testing
 {
-
     [TestFixture]
     public class ChannelWriterTester
     {
@@ -24,6 +24,7 @@ namespace FubuMVC.ServerSentEvents.Testing
         private IServerEvent e4;
         private IServerEvent e5;
         private FakeTopic theTopic;
+        private ExceptionRecorder exceptionRecorder;
 
         [SetUp]
         public void SetUp()
@@ -34,6 +35,7 @@ namespace FubuMVC.ServerSentEvents.Testing
             var channel = new TopicChannel<FakeTopic>(new EventQueue<FakeTopic>());
             theChannel = channel.Channel;
             theTopic = new FakeTopic();
+            exceptionRecorder = new ExceptionRecorder();
 
             cache.Stub(x => x.ChannelFor(theTopic)).Return(channel);
 
@@ -100,7 +102,7 @@ namespace FubuMVC.ServerSentEvents.Testing
 
             theChannel.Write(q => q.Write(e1));
 
-            task.Wait(15).ShouldBeTrue();
+            task.Wait(150).ShouldBeTrue();
 
             theWriter.Events.ShouldHaveCount(0);
         }
@@ -156,8 +158,12 @@ namespace FubuMVC.ServerSentEvents.Testing
             });
 
             testTask.RunSynchronously();
-
             testTask.IsFaulted.ShouldBeTrue();
+
+            var exceptions = testTask.Exception.Flatten().InnerExceptions;
+
+            exceptions.Count.ShouldEqual(1);
+            exceptions[0].Message.ShouldEqual(RecordingServerEventWriter.ExceptionMesssage);
         }
 
         [Test]
@@ -177,7 +183,7 @@ namespace FubuMVC.ServerSentEvents.Testing
             theWriter.ForceClientDisconnect();
             theChannel.Flush();
 
-            parentTask.Wait(5000).ShouldBeTrue();
+            parentTask.Wait(150).ShouldBeTrue();
         }
     }
 
@@ -189,6 +195,7 @@ namespace FubuMVC.ServerSentEvents.Testing
         public int? FailOnNthWrite { get; set; }
 
         public bool WriterThrows { get; set; }
+        public const string ExceptionMesssage = "Recording Server Event Writer Test Exception";
 
         public IList<IServerEvent> Events
         {
@@ -203,7 +210,7 @@ namespace FubuMVC.ServerSentEvents.Testing
         public bool Write(IServerEvent @event)
         {
             if (WriterThrows)
-                throw new Exception();
+                throw new Exception(ExceptionMesssage);
 
             if (FailOnNthWrite.HasValue && FailOnNthWrite.Value == _lock.Read(() => _events.Count + 1))
                 return false;
@@ -226,6 +233,26 @@ namespace FubuMVC.ServerSentEvents.Testing
         public void ForceClientDisconnect()
         {
             Interlocked.Increment(ref _forceDisconnect);
+        }
+    }
+
+    public class ExceptionRecorder : IExceptionHandler
+    {
+        public IList<Exception> HandledExceptions { get; private set; }
+
+        public ExceptionRecorder()
+        {
+            HandledExceptions = new List<Exception>();
+        }
+
+        public bool ShouldHandle(Exception exception)
+        {
+            return true;
+        }
+
+        public void Handle(Exception exception)
+        {
+            HandledExceptions.Add(exception);
         }
     }
 }
