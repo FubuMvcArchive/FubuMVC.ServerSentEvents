@@ -11,7 +11,8 @@ namespace FubuMVC.ServerSentEvents
             SetServiceIfNone(typeof (IEventQueueFactory<>), typeof (DefaultEventQueueFactory<>));
             SetServiceIfNone<IServerEventWriter, ServerEventWriter>();
             SetServiceIfNone<ITopicChannelCache, TopicChannelCache>();
-			SetServiceIfNone<IDataFormatter, DataFormatter>();
+            SetServiceIfNone<IDataFormatter, DataFormatter>();
+            SetServiceIfNone<IAspNetShutDownDetector, AspNetShutDownDetector>();
         }
     }
 }

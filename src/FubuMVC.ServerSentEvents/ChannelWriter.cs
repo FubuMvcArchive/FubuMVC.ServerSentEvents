@@ -27,7 +27,12 @@ namespace FubuMVC.ServerSentEvents
             return Task.Factory.StartNew(() =>
             {
                 _topic = topic;
-                _channel = _cache.ChannelFor(topic).Channel;
+                ITopicChannel<T> topicChannel;
+
+                if (!_cache.TryGetChannelFor(_topic, out topicChannel))
+                    return;
+
+                _channel = topicChannel.Channel;
                 _liveConnection = new TaskCompletionSource<bool>(TaskCreationOptions.AttachedToParent);
                 FindEvents();
             }, TaskCreationOptions.AttachedToParent);

@@ -91,5 +91,27 @@ namespace FubuMVC.ServerSentEvents.Testing
             task2.Result.ShouldHaveTheSameElementsAs(e3);
             task3.Result.ShouldHaveTheSameElementsAs(e1, e2, e3);
         }
+
+        [Test]
+        public void disconnected_channel_returns_empty_enumerable()
+        {
+            var e1 = new ServerEvent("1", "data-1");
+            var e2 = new ServerEvent("2", "data-2");
+            var e3 = new ServerEvent("3", "data-3");
+
+            theChannel.Write(q =>
+            {
+                q.Write(e1, e2, e3);
+            });
+
+            theChannel.Flush();
+            theChannel.IsConnected().ShouldBeFalse();
+
+            var task = theChannel.FindEvents(null);
+
+            task.Wait(150).ShouldBeTrue();
+
+            task.Result.ShouldHaveCount(0);
+        }
     }
 }

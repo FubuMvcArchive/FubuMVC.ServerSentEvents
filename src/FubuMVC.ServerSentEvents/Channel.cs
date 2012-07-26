@@ -58,13 +58,22 @@ namespace FubuMVC.ServerSentEvents
 
         private bool FindEventsReadLockOnly(TTopic topic, TaskCompletionSource<IEnumerable<IServerEvent>> source)
         {
-            var events = _lock.Read(() => _queue.FindQueuedEvents(topic));
+            return _lock.Read(() =>
+            {
+                if (!_isConnected)
+                {
+                    source.SetResult(Enumerable.Empty<IServerEvent>());
+                    return true;
+                }
 
-            if (!events.Any())
-                return false;
+                var events = _queue.FindQueuedEvents(topic);
 
-            source.SetResult(events);
-            return true;
+                if (!events.Any())
+                    return false;
+
+                source.SetResult(events);
+                return true;
+            });
         }
 
         private void FindEventsWithWriteLock(TTopic topic, TaskCompletionSource<IEnumerable<IServerEvent>> source)
