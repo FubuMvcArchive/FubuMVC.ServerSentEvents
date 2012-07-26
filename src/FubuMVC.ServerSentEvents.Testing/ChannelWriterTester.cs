@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using FubuCore;
 using FubuMVC.Core.Http;
-using FubuMVC.Core.Runtime;
 using NUnit.Framework;
 using Rhino.Mocks;
 using FubuTestingSupport;
@@ -24,7 +23,6 @@ namespace FubuMVC.ServerSentEvents.Testing
         private IServerEvent e4;
         private IServerEvent e5;
         private FakeTopic theTopic;
-        private ExceptionRecorder exceptionRecorder;
 
         [SetUp]
         public void SetUp()
@@ -32,12 +30,11 @@ namespace FubuMVC.ServerSentEvents.Testing
             theWriter = new RecordingServerEventWriter();
 
             var cache = MockRepository.GenerateMock<ITopicChannelCache>();
-            var channel = new TopicChannel<FakeTopic>(new EventQueue<FakeTopic>());
+            ITopicChannel<FakeTopic> channel = new TopicChannel<FakeTopic>(new EventQueue<FakeTopic>());
             theChannel = channel.Channel;
             theTopic = new FakeTopic();
-            exceptionRecorder = new ExceptionRecorder();
 
-            cache.Stub(x => x.ChannelFor(theTopic)).Return(channel);
+            cache.Stub(x => x.TryGetChannelFor(theTopic, out channel)).Return(true).OutRef(channel);
 
             theChannelWriter = new ChannelWriter<FakeTopic>(theWriter, theWriter, cache);
 
@@ -126,7 +123,7 @@ namespace FubuMVC.ServerSentEvents.Testing
 
             theChannel.Flush();
 
-            task.Wait(15).ShouldBeTrue();
+            task.Wait(150).ShouldBeTrue();
             theWriter.Events.ShouldHaveCount(0);
         }
 
@@ -185,6 +182,24 @@ namespace FubuMVC.ServerSentEvents.Testing
 
             parentTask.Wait(150).ShouldBeTrue();
         }
+
+        [Test]
+        public void failure_to_acquire_channel_terminates_without_errors()
+        {
+            theWriter = new RecordingServerEventWriter();
+
+            var cache = MockRepository.GenerateMock<ITopicChannelCache>();
+            ITopicChannel<FakeTopic> channel = new TopicChannel<FakeTopic>(new EventQueue<FakeTopic>());
+            theChannel = channel.Channel;
+            theTopic = new FakeTopic();
+
+            cache.Stub(x => x.TryGetChannelFor(theTopic, out channel)).Return(false);
+
+            theChannelWriter = new ChannelWriter<FakeTopic>(theWriter, theWriter, cache);
+            var task = theChannelWriter.Write(theTopic);
+
+            task.Wait(150).ShouldBeTrue();
+        }
     }
 
     public class RecordingServerEventWriter : IServerEventWriter, IClientConnectivity
@@ -233,26 +248,6 @@ namespace FubuMVC.ServerSentEvents.Testing
         public void ForceClientDisconnect()
         {
             Interlocked.Increment(ref _forceDisconnect);
-        }
-    }
-
-    public class ExceptionRecorder : IExceptionHandler
-    {
-        public IList<Exception> HandledExceptions { get; private set; }
-
-        public ExceptionRecorder()
-        {
-            HandledExceptions = new List<Exception>();
-        }
-
-        public bool ShouldHandle(Exception exception)
-        {
-            return true;
-        }
-
-        public void Handle(Exception exception)
-        {
-            HandledExceptions.Add(exception);
         }
     }
 }

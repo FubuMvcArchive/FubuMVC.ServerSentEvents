@@ -1,24 +1,27 @@
+using System;
+using FubuCore;
 using FubuMVC.StructureMap;
 using FubuTestingSupport;
 using NUnit.Framework;
-using StructureMap;
 
 namespace FubuMVC.ServerSentEvents.Testing
 {
     [TestFixture]
-    public class TopicChannelCacheTester
+    public class TopicChannelCacheTester : InteractionContext<TopicChannelCache>
     {
-        private TopicChannelCache theCache;
-        private IContainer _container;
+        private FakeAspNetShutDownDetector _shutdownDetector;
 
         [SetUp]
-        public void SetUp()
+        protected override void  beforeEach()
         {
-            _container = new Container(x => x.For(typeof(IEventQueueFactory<>)).Use(typeof(DefaultEventQueueFactory<>)));
+            _shutdownDetector = new FakeAspNetShutDownDetector();
 
-            var services = new StructureMapServiceLocator(_container);
-
-            theCache = new TopicChannelCache(services);
+            Container.Configure(x =>
+            {
+                x.For(typeof (IEventQueueFactory<>)).Use(typeof (DefaultEventQueueFactory<>));
+                x.For<IServiceLocator>().Use<StructureMapServiceLocator>();
+                x.For<IAspNetShutDownDetector>().Use(_shutdownDetector);
+            });
         }
 
         [Test]
@@ -34,15 +37,14 @@ namespace FubuMVC.ServerSentEvents.Testing
                 Name = "Todd"
             };
 
-            theCache.ChannelFor(topic1).ShouldNotBeNull();
-            theCache.ChannelFor(topic1).ShouldBeTheSameAs(theCache.ChannelFor(topic1));
-            theCache.ChannelFor(topic1).ShouldBeTheSameAs(theCache.ChannelFor(topic1));
-            theCache.ChannelFor(topic1).ShouldBeTheSameAs(theCache.ChannelFor(topic1));
+            ClassUnderTest.ChannelFor(topic1).ShouldNotBeNull();
+            ClassUnderTest.ChannelFor(topic1).ShouldBeTheSameAs(ClassUnderTest.ChannelFor(topic1));
+            ClassUnderTest.ChannelFor(topic1).ShouldBeTheSameAs(ClassUnderTest.ChannelFor(topic1));
+            ClassUnderTest.ChannelFor(topic1).ShouldBeTheSameAs(ClassUnderTest.ChannelFor(topic1));
 
-            theCache.ChannelFor(topic2).ShouldBeTheSameAs(theCache.ChannelFor(topic2));
+            ClassUnderTest.ChannelFor(topic2).ShouldBeTheSameAs(ClassUnderTest.ChannelFor(topic2));
 
-
-            theCache.ChannelFor(topic1).ShouldNotBeTheSameAs(theCache.ChannelFor(topic2));
+            ClassUnderTest.ChannelFor(topic1).ShouldNotBeTheSameAs(ClassUnderTest.ChannelFor(topic2));
         }
 
         [Test]
@@ -69,21 +71,68 @@ namespace FubuMVC.ServerSentEvents.Testing
                 Name = "Trent"
             };
 
-            theCache.ChannelFor(topic1).ShouldNotBeNull();
-            theCache.ChannelFor(topic1).ShouldBeTheSameAs(theCache.ChannelFor(topic1));
-            theCache.ChannelFor(topic1).ShouldBeTheSameAs(theCache.ChannelFor(topic1));
-            theCache.ChannelFor(topic1).ShouldBeTheSameAs(theCache.ChannelFor(topic1));
+            ClassUnderTest.ChannelFor(topic1).ShouldNotBeNull();
+            ClassUnderTest.ChannelFor(topic1).ShouldBeTheSameAs(ClassUnderTest.ChannelFor(topic1));
+            ClassUnderTest.ChannelFor(topic1).ShouldBeTheSameAs(ClassUnderTest.ChannelFor(topic1));
+            ClassUnderTest.ChannelFor(topic1).ShouldBeTheSameAs(ClassUnderTest.ChannelFor(topic1));
 
-            theCache.ChannelFor(topic2).ShouldBeTheSameAs(theCache.ChannelFor(topic2));
+            ClassUnderTest.ChannelFor(topic2).ShouldBeTheSameAs(ClassUnderTest.ChannelFor(topic2));
 
+            ClassUnderTest.ChannelFor(topic1).ShouldNotBeTheSameAs(ClassUnderTest.ChannelFor(topic2));
 
-            theCache.ChannelFor(topic1).ShouldNotBeTheSameAs(theCache.ChannelFor(topic2));
+            ClassUnderTest.ChannelFor(topic3).ShouldBeTheSameAs(ClassUnderTest.ChannelFor(topic3));
 
-            theCache.ChannelFor(topic3).ShouldBeTheSameAs(theCache.ChannelFor(topic3));
+            ClassUnderTest.ChannelFor(topic4).ShouldBeTheSameAs(ClassUnderTest.ChannelFor(topic4));
 
-            theCache.ChannelFor(topic4).ShouldBeTheSameAs(theCache.ChannelFor(topic4));
+            ClassUnderTest.ChannelFor(topic3).ShouldNotBeTheSameAs(ClassUnderTest.ChannelFor(topic4));
+        }
 
-            theCache.ChannelFor(topic3).ShouldNotBeTheSameAs(theCache.ChannelFor(topic4));
+        [Test]
+        public void disposes_on_asp_shutdown_event()
+        {
+            var topic1 = new FakeTopic
+            {
+                Name = "Tom"
+            };
+
+            var topic2 = new FakeTopic
+            {
+                Name = "Todd"
+            };
+
+            var channel1 = ClassUnderTest.ChannelFor(topic1);
+            var channel2 = ClassUnderTest.ChannelFor(topic2);
+
+            channel1.ShouldNotBeNull();
+            channel2.ShouldNotBeNull();
+
+            _shutdownDetector.Stop(true);
+
+            channel1.Channel.IsConnected().ShouldBeFalse();
+            channel2.Channel.IsConnected().ShouldBeFalse();
+
+            Exception<ObjectDisposedException>.ShouldBeThrownBy(() => ClassUnderTest.ChannelFor(topic1));
+            Exception<ObjectDisposedException>.ShouldBeThrownBy(() => ClassUnderTest.ChannelFor(topic2));
+        }
+    }
+
+    public class FakeAspNetShutDownDetector : IAspNetShutDownDetector
+    {
+        private Action _onShutdown;
+
+        public void Stop(bool immediate)
+        {
+            _onShutdown();
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Register(Action onShutdown)
+        {
+            _onShutdown = onShutdown;
         }
     }
 }

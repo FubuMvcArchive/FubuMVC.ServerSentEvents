@@ -6,26 +6,49 @@ using FubuCore.Util;
 
 namespace FubuMVC.ServerSentEvents
 {
-    public class TopicChannelCache : ITopicChannelCache
+    public class TopicChannelCache : ITopicChannelCache, IDisposable
     {
+        private readonly IAspNetShutDownDetector _shutdownDetector;
         private readonly Cache<Type, ITopicFamily> _families;
-        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 
-        public TopicChannelCache(IServiceLocator services)
+        public bool IsDisposed { get; private set; }
+
+        public TopicChannelCache(IServiceLocator services, IAspNetShutDownDetector shutdownDetector)
         {
             _families = new Cache<Type, ITopicFamily>(type =>
             {
                 var familyType = typeof (TopicFamily<>).MakeGenericType(type);
                 return (ITopicFamily) services.GetInstance(familyType);
             });
+
+            _shutdownDetector = shutdownDetector;
+            _shutdownDetector.Register(DisposeAction);
         }
 
         public ITopicChannel<T> ChannelFor<T>(T topic) where T : Topic
         {
             return _lock.Read(() =>
             {
+                if (IsDisposed)
+                    throw new ObjectDisposedException("TopicChannelCache");
+
                 return _families[typeof (T)].As<TopicFamily<T>>().ChannelFor(topic);
             });
+        }
+
+        public bool TryGetChannelFor<T>(T topic, out ITopicChannel<T> channel) where T : Topic
+        {
+            try
+            {
+                channel = ChannelFor(topic);
+                return true;
+            }
+            catch(Exception)
+            {
+                channel = null;
+                return false;
+            }
         }
 
         public void ClearAll()
@@ -42,8 +65,26 @@ namespace FubuMVC.ServerSentEvents
         {
             _lock.Write(() =>
             {
+                if (IsDisposed)
+                    throw new ObjectDisposedException("TopicChannelCache");
+
                 var family = _families[typeof (T)].As<TopicFamily<T>>();
                 topics().Each(family.SpinUpChannel);
+            });
+        }
+
+        public void Dispose()
+        {
+            _shutdownDetector.Dispose();
+            DisposeAction();
+        }
+
+        private void DisposeAction()
+        {
+            _lock.Write(() =>
+            {
+                IsDisposed = true;
+                ClearAll();
             });
         }
     }

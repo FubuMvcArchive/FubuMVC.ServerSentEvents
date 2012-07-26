@@ -62,6 +62,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AspNetShutDownDetector.cs" />
     <Compile Include="Channel.cs" />
     <Compile Include="ChannelWriter.cs" />
     <Compile Include="DefaultEventQueueFactory.cs" />
