@@ -2,9 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FubuMVC.Core.Http;
+using FubuMVC.Core.Http.Compression;
 
 namespace FubuMVC.ServerSentEvents
 {
+    [DoNotCompress]
     public class ChannelWriter<T> where T : Topic
     {
         private readonly IClientConnectivity _connectivity;

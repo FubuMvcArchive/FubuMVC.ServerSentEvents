@@ -167,5 +167,9 @@ namespace FubuMVC.ServerSentEvents.Testing
         public void Flush()
         {
         }
+
+        public void Dispose()
+        {
+        }
     }
 }
