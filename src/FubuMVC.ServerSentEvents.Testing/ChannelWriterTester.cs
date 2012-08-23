@@ -23,26 +23,36 @@ namespace FubuMVC.ServerSentEvents.Testing
         private IServerEvent e4;
         private IServerEvent e5;
         private FakeTopic theTopic;
+        private IChannelInitializer<FakeTopic> theInitializer;
+        private ITopicChannelCache theCache;
+        private ServerEvent ie1;
+        private ServerEvent ie2;
+        private ServerEvent ie3;
 
         [SetUp]
         public void SetUp()
         {
+            theInitializer = new DefaultChannelInitializer<FakeTopic>();
             theWriter = new RecordingServerEventWriter();
 
-            var cache = MockRepository.GenerateMock<ITopicChannelCache>();
+            theCache = MockRepository.GenerateMock<ITopicChannelCache>();
             ITopicChannel<FakeTopic> channel = new TopicChannel<FakeTopic>(new EventQueue<FakeTopic>());
             theChannel = channel.Channel;
             theTopic = new FakeTopic();
 
-            cache.Stub(x => x.TryGetChannelFor(theTopic, out channel)).Return(true).OutRef(channel);
+            theCache.Stub(x => x.TryGetChannelFor(theTopic, out channel)).Return(true).OutRef(channel);
 
-            theChannelWriter = new ChannelWriter<FakeTopic>(theWriter, theWriter, cache);
+            theChannelWriter = new ChannelWriter<FakeTopic>(theWriter, theWriter, theCache, theInitializer);
 
             e1 = new ServerEvent("1", "data-1");
             e2 = new ServerEvent("2", "data-2");
             e3 = new ServerEvent("3", "data-3");
             e4 = new ServerEvent("4", "data-4");
             e5 = new ServerEvent("5", "data-5");
+
+            ie1 = new ServerEvent("random1", "initialization data-1");
+            ie2 = new ServerEvent("random2", "initialization data-2");
+            ie3 = new ServerEvent("3", "initialization data-3");
         }
 
         [Test]
@@ -57,6 +67,40 @@ namespace FubuMVC.ServerSentEvents.Testing
             task.Wait(150).ShouldBeTrue();
 
             theWriter.Events.ShouldHaveTheSameElementsAs(e1, e2, e3);
+        }
+
+        [Test]
+        public void sends_initialization_events_then_all_other_events()
+        {
+            theChannel.Write(q => q.Write(e1, e2, e3));
+            theInitializer = new TestChannelInitializer(ie1, ie2);
+
+            theChannelWriter = new ChannelWriter<FakeTopic>(theWriter, theWriter, theCache, theInitializer);
+
+            theWriter.ConnectedTest = () => !theWriter.Events.Contains(e3);
+
+            var task = theChannelWriter.Write(theTopic);
+
+            task.Wait(150).ShouldBeTrue();
+
+            theWriter.Events.ShouldHaveTheSameElementsAs(ie1, ie2, e1, e2, e3);
+        }
+
+        [Test]
+        public void sends_initialization_events_then_events_following_last_initial_event_id()
+        {
+            theChannel.Write(q => q.Write(e1, e2, e3, e4, e5));
+            theInitializer = new TestChannelInitializer(ie1, ie2, ie3);
+
+            theChannelWriter = new ChannelWriter<FakeTopic>(theWriter, theWriter, theCache, theInitializer);
+
+            theWriter.ConnectedTest = () => !theWriter.Events.Contains(e5);
+
+            var task = theChannelWriter.Write(theTopic);
+
+            task.Wait(150).ShouldBeTrue();
+
+            theWriter.Events.ShouldHaveTheSameElementsAs(ie1, ie2, ie3, e4, e5);
         }
 
         [Test]
@@ -160,7 +204,28 @@ namespace FubuMVC.ServerSentEvents.Testing
             var exceptions = testTask.Exception.Flatten().InnerExceptions;
 
             exceptions.Count.ShouldEqual(1);
-            exceptions[0].Message.ShouldEqual(RecordingServerEventWriter.ExceptionMesssage);
+            exceptions[0].Message.ShouldEqual(RecordingServerEventWriter.ExceptionMessage);
+        }
+
+        [Test]
+        public void parent_task_is_faulted_when_channel_initializer_fails()
+        {
+            theInitializer = new FailingTestChannelInitializer();
+            theChannelWriter = new ChannelWriter<FakeTopic>(theWriter, theWriter, theCache, theInitializer);
+
+            var testTask = new Task(() =>
+            {
+                theChannelWriter.Write(theTopic);
+                theChannel.Write(q => q.Write(e1));
+            });
+
+            testTask.RunSynchronously();
+            testTask.IsFaulted.ShouldBeTrue();
+
+            var exceptions = testTask.Exception.Flatten().InnerExceptions;
+
+            exceptions.Count.ShouldEqual(1);
+            exceptions[0].Message.ShouldEqual(FailingTestChannelInitializer.ExceptionMessage);
         }
 
         [Test]
@@ -195,7 +260,7 @@ namespace FubuMVC.ServerSentEvents.Testing
 
             cache.Stub(x => x.TryGetChannelFor(theTopic, out channel)).Return(false);
 
-            theChannelWriter = new ChannelWriter<FakeTopic>(theWriter, theWriter, cache);
+            theChannelWriter = new ChannelWriter<FakeTopic>(theWriter, theWriter, cache, theInitializer);
             var task = theChannelWriter.Write(theTopic);
 
             task.Wait(150).ShouldBeTrue();
@@ -210,7 +275,7 @@ namespace FubuMVC.ServerSentEvents.Testing
         public int? FailOnNthWrite { get; set; }
 
         public bool WriterThrows { get; set; }
-        public const string ExceptionMesssage = "Recording Server Event Writer Test Exception";
+        public const string ExceptionMessage = "Recording Server Event Writer Test Exception";
 
         public IList<IServerEvent> Events
         {
@@ -225,7 +290,7 @@ namespace FubuMVC.ServerSentEvents.Testing
         public bool Write(IServerEvent @event)
         {
             if (WriterThrows)
-                throw new Exception(ExceptionMesssage);
+                throw new Exception(ExceptionMessage);
 
             if (FailOnNthWrite.HasValue && FailOnNthWrite.Value == _lock.Read(() => _events.Count + 1))
                 return false;
@@ -248,6 +313,40 @@ namespace FubuMVC.ServerSentEvents.Testing
         public void ForceClientDisconnect()
         {
             Interlocked.Increment(ref _forceDisconnect);
+        }
+    }
+
+    public class TestChannelInitializer : IChannelInitializer<FakeTopic>
+    {
+        private readonly IServerEvent[] _initializationEvents;
+
+        public TestChannelInitializer(params IServerEvent[] initializationEvents)
+        {
+            _initializationEvents = initializationEvents;
+        }
+
+        public Task<IEnumerable<IServerEvent>> GetInitializationEvents(FakeTopic topic)
+        {
+            var result = new TaskCompletionSource<IEnumerable<IServerEvent>>();
+            result.SetResult(_initializationEvents);
+            var last = _initializationEvents.LastOrDefault();
+
+            if (last != null)
+                topic.LastEventId = last.Id;
+
+            return result.Task;
+        }
+    }
+
+    public class FailingTestChannelInitializer : IChannelInitializer<FakeTopic>
+    {
+        public const string ExceptionMessage = "Intialization Exception";
+
+        public Task<IEnumerable<IServerEvent>> GetInitializationEvents(FakeTopic Topic)
+        {
+            var result = new TaskCompletionSource<IEnumerable<IServerEvent>>();
+            result.SetException(new Exception(ExceptionMessage));
+            return result.Task;
         }
     }
 }

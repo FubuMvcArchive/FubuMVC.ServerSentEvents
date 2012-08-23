@@ -10,16 +10,18 @@ namespace FubuMVC.ServerSentEvents
         private readonly IClientConnectivity _connectivity;
         private readonly IServerEventWriter _writer;
         private readonly ITopicChannelCache _cache;
+        private readonly IChannelInitializer<T> _channelInitializer;
         private IChannel<T> _channel;
         private T _topic;
 
         private TaskCompletionSource<bool> _liveConnection;
 
-        public ChannelWriter(IClientConnectivity connectivity, IServerEventWriter writer, ITopicChannelCache cache)
+        public ChannelWriter(IClientConnectivity connectivity, IServerEventWriter writer, ITopicChannelCache cache, IChannelInitializer<T> channelInitializer)
         {
             _connectivity = connectivity;
             _writer = writer;
             _cache = cache;
+            _channelInitializer = channelInitializer;
         }
 
         public Task Write(T topic)
@@ -34,7 +36,11 @@ namespace FubuMVC.ServerSentEvents
 
                 _channel = topicChannel.Channel;
                 _liveConnection = new TaskCompletionSource<bool>(TaskCreationOptions.AttachedToParent);
-                FindEvents();
+                
+                var initializationTask = _channelInitializer.GetInitializationEvents(topic);
+
+                OnFaulted(initializationTask);
+                WriteFoundEvents(initializationTask);
             }, TaskCreationOptions.AttachedToParent);
         }
 
