@@ -67,6 +67,7 @@
     <Compile Include="ChannelWriter.cs" />
     <Compile Include="DefaultEventQueueFactory.cs" />
     <Compile Include="EventPublisher.cs" />
+    <Compile Include="IChannelInitializer.cs" />
     <Compile Include="IDataFormatter.cs" />
     <Compile Include="IServerEvent.cs" />
     <Compile Include="ServerEventList.cs" />
