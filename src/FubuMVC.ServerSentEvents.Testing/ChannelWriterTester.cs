@@ -22,12 +22,12 @@ namespace FubuMVC.ServerSentEvents.Testing
         private IServerEvent e3;
         private IServerEvent e4;
         private IServerEvent e5;
+        private IServerEvent ie1;
+        private IServerEvent ie2;
+        private IServerEvent ie3;
         private FakeTopic theTopic;
         private IChannelInitializer<FakeTopic> theInitializer;
         private ITopicChannelCache theCache;
-        private ServerEvent ie1;
-        private ServerEvent ie2;
-        private ServerEvent ie3;
 
         [SetUp]
         public void SetUp()
