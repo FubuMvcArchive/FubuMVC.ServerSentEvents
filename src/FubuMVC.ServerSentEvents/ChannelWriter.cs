@@ -35,12 +35,11 @@ namespace FubuMVC.ServerSentEvents
                     return;
 
                 _channel = topicChannel.Channel;
-                _liveConnection = new TaskCompletionSource<bool>(TaskCreationOptions.AttachedToParent);
-                
-                var initializationTask = _channelInitializer.GetInitializationEvents(topic);
 
-                OnFaulted(initializationTask);
-                WriteFoundEvents(initializationTask);
+                WriteEvents(_channelInitializer.GetInitializationEvents(topic));
+
+                _liveConnection = new TaskCompletionSource<bool>(TaskCreationOptions.AttachedToParent);
+                FindEvents();
             }, TaskCreationOptions.AttachedToParent);
         }
 
@@ -55,10 +54,10 @@ namespace FubuMVC.ServerSentEvents
             var task = _channel.FindEvents(_topic);
 
             OnFaulted(task);
-            WriteFoundEvents(task);
+            HandleFoundEvents(task);
         }
 
-        private void WriteFoundEvents(Task<IEnumerable<IServerEvent>> task)
+        private void HandleFoundEvents(Task<IEnumerable<IServerEvent>> task)
         {
             var continuation = task.ContinueWith(x =>
             {
@@ -68,20 +67,23 @@ namespace FubuMVC.ServerSentEvents
                     return;
                 }
 
-                var messages = x.Result;
-                var lastSuccessfulMessage = messages
-                    .TakeWhile(y => _writer.Write(y))
-                    .LastOrDefault();
-
-                if (lastSuccessfulMessage != null)
-                {
-                    _topic.LastEventId = lastSuccessfulMessage.Id;
-                }
-
+                WriteEvents(x.Result);
                 FindEvents();
             }, TaskContinuationOptions.NotOnFaulted); // Intentionally not attached to parent to prevent stack overflow exceptions.
 
             OnFaulted(continuation);
+        }
+
+        private void WriteEvents(IEnumerable<IServerEvent> events)
+        {
+            var lastSuccessfulMessage = events
+                .TakeWhile(y => _writer.Write(y))
+                .LastOrDefault();
+
+            if (lastSuccessfulMessage != null)
+            {
+                _topic.LastEventId = lastSuccessfulMessage.Id;
+            }
         }
 
         private void OnFaulted(Task task)
