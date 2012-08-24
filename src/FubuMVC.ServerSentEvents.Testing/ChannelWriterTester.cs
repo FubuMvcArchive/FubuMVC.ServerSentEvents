@@ -213,11 +213,7 @@ namespace FubuMVC.ServerSentEvents.Testing
             theInitializer = new FailingTestChannelInitializer();
             theChannelWriter = new ChannelWriter<FakeTopic>(theWriter, theWriter, theCache, theInitializer);
 
-            var testTask = new Task(() =>
-            {
-                theChannelWriter.Write(theTopic);
-                theChannel.Write(q => q.Write(e1));
-            });
+            var testTask = new Task(() => theChannelWriter.Write(theTopic));
 
             testTask.RunSynchronously();
             testTask.IsFaulted.ShouldBeTrue();
@@ -325,16 +321,14 @@ namespace FubuMVC.ServerSentEvents.Testing
             _initializationEvents = initializationEvents;
         }
 
-        public Task<IEnumerable<IServerEvent>> GetInitializationEvents(FakeTopic topic)
+        public IEnumerable<IServerEvent> GetInitializationEvents(FakeTopic topic)
         {
-            var result = new TaskCompletionSource<IEnumerable<IServerEvent>>();
-            result.SetResult(_initializationEvents);
             var last = _initializationEvents.LastOrDefault();
 
             if (last != null)
                 topic.LastEventId = last.Id;
 
-            return result.Task;
+            return _initializationEvents;
         }
     }
 
@@ -342,11 +336,9 @@ namespace FubuMVC.ServerSentEvents.Testing
     {
         public const string ExceptionMessage = "Intialization Exception";
 
-        public Task<IEnumerable<IServerEvent>> GetInitializationEvents(FakeTopic Topic)
+        public IEnumerable<IServerEvent> GetInitializationEvents(FakeTopic Topic)
         {
-            var result = new TaskCompletionSource<IEnumerable<IServerEvent>>();
-            result.SetException(new Exception(ExceptionMessage));
-            return result.Task;
+            throw new Exception(ExceptionMessage);
         }
     }
 }
