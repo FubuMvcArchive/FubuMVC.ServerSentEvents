@@ -26,7 +26,7 @@ namespace FubuMVC.ServerSentEvents
 
     public class TopicUrls : IUrlPolicy
     {
-        public bool Matches(ActionCall call, IConfigurationObserver log)
+        public bool Matches(ActionCall call)
         {
             return call.HandlerType.Closes(typeof (ChannelWriter<>));
         }
