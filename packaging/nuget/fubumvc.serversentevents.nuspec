@@ -12,7 +12,7 @@
     <description>Conventional goodness for Server Sent Events in your FubuMVC applications</description>
     <tags>fubumvc realtime serversentevents events</tags>
     <dependencies>
-      <dependency id="FubuMVC.Core" version="0.9.8.993" />
+      <dependency id="FubuMVC.Core" version="0.9.9.1274" />
     </dependencies>
   </metadata>
   <files>

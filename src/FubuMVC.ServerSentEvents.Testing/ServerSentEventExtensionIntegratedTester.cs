@@ -19,7 +19,6 @@ namespace FubuMVC.ServerSentEvents.Testing
         public void end_to_end()
         {
             var registry = new FubuRegistry();
-            registry.Applies.ToThisAssembly();
             registry.Import<ServerSentEventsExtension>();
 
             var container = new Container();
@@ -42,7 +41,6 @@ namespace FubuMVC.ServerSentEvents.Testing
         public void SetUp()
         {
             var registry = new FubuRegistry();
-            registry.Applies.ToThisAssembly();
             registry.Import<ServerSentEventsExtension>();
 
             theGraph = BehaviorGraph.BuildFrom(registry);

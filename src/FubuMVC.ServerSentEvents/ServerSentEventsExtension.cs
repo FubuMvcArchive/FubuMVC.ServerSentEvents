@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Bottles;
 using FubuCore.Reflection;
 using FubuMVC.Core;
@@ -45,8 +46,11 @@ namespace FubuMVC.ServerSentEvents
 
     public class TopicActions : IActionSource
     {
-        public IEnumerable<ActionCall> FindActions(TypePool types)
+        public IEnumerable<ActionCall> FindActions(Assembly applicationAssembly)
         {
+            var types = new TypePool();
+            types.AddAssembly(applicationAssembly);
+
             var methodName = ReflectionHelper.GetMethod<ChannelWriter<Topic>>(x => x.Write(null))
                 .Name;
 
