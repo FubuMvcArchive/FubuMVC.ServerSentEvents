@@ -63,6 +63,8 @@ namespace FubuMVC.ServerSentEvents
         {
             var continuation = task.ContinueWith(x =>
             {
+                if (x.IsFaulted) return;
+
                 if (!_connectivity.IsClientConnected())
                 {
                     _liveConnection.SetResult(false);
@@ -71,7 +73,7 @@ namespace FubuMVC.ServerSentEvents
 
                 WriteEvents(x.Result);
                 FindEvents();
-            }, TaskContinuationOptions.NotOnFaulted); // Intentionally not attached to parent to prevent stack overflow exceptions.
+            }); // Intentionally not attached to parent to prevent stack overflow exceptions.
 
             OnFaulted(continuation);
         }
