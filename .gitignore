@@ -23,3 +23,5 @@ results
 bottles.cmd
 fubu.cmd
 *.user
+logs
+Gemfile.lock
