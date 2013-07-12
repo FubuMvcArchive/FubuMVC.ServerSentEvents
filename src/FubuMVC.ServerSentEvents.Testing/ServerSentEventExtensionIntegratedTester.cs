@@ -3,6 +3,7 @@ using FubuMVC.Core.Behaviors;
 using FubuMVC.Core.Registration;
 using FubuMVC.Core.Registration.Nodes;
 using FubuMVC.Core.Registration.Routes;
+using FubuMVC.Core.Runtime;
 using NUnit.Framework;
 using FubuTestingSupport;
 using System.Linq;
@@ -20,6 +21,7 @@ namespace FubuMVC.ServerSentEvents.Testing
         {
             var registry = new FubuRegistry();
             registry.Import<ServerSentEventsExtension>();
+            registry.Services(x => x.FillType<IRequestCompletion, RequestCompletion>());
 
             var container = new Container();
             FubuApplication.For(registry).StructureMap(container).Bootstrap();

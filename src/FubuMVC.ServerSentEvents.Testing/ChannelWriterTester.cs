@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FubuCore;
 using FubuMVC.Core.Http;
+using FubuMVC.Core.Runtime;
 using NUnit.Framework;
 using Rhino.Mocks;
 using FubuTestingSupport;
@@ -188,20 +189,26 @@ namespace FubuMVC.ServerSentEvents.Testing
         }
 
         [Test]
-        public void parent_task_is_faulted_when_writer_throws_exception()
+        public void request_is_faulted_when_writer_throws_exception()
         {
+            var requestCompletion = new RequestCompletion();
+            AggregateException exception = null;
+            var waitHandle = new ManualResetEvent(false);
+            requestCompletion.WhenCompleteDo(ex =>
+            {
+                exception = ex as AggregateException;
+                waitHandle.Set();
+            });
+            var asyncCoordinator = new AsyncCoordinator(requestCompletion, Enumerable.Empty<IExceptionHandler>());
             theWriter.WriterThrows = true;
 
-            var testTask = new Task(() =>
-            {
-                theChannelWriter.Write(theTopic);
-                theChannel.Write(q => q.Write(e1));
-            });
+            var task = theChannelWriter.Write(theTopic);
+            theChannel.Write(q => q.Write(e1));
 
-            testTask.RunSynchronously();
-            testTask.IsFaulted.ShouldBeTrue();
+            asyncCoordinator.Push(task);
 
-            var exceptions = testTask.Exception.Flatten().InnerExceptions;
+            waitHandle.WaitOne(TimeSpan.FromSeconds(1));
+            var exceptions = exception.Flatten().InnerExceptions;
 
             exceptions.Count.ShouldEqual(1);
             exceptions[0].Message.ShouldEqual(RecordingServerEventWriter.ExceptionMessage);

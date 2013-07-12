@@ -28,21 +28,22 @@ namespace FubuMVC.ServerSentEvents
 
         public Task Write(T topic)
         {
-            return Task.Factory.StartNew(() =>
+            _liveConnection = new TaskCompletionSource<bool>();
+            _topic = topic;
+            ITopicChannel<T> topicChannel;
+
+            if (!_cache.TryGetChannelFor(_topic, out topicChannel))
             {
-                _topic = topic;
-                ITopicChannel<T> topicChannel;
+                _liveConnection.SetResult(false);
+                return _liveConnection.Task;
+            }
 
-                if (!_cache.TryGetChannelFor(_topic, out topicChannel))
-                    return;
+            _channel = topicChannel.Channel;
 
-                _channel = topicChannel.Channel;
+            WriteEvents(_channelInitializer.GetInitializationEvents(topic));
 
-                WriteEvents(_channelInitializer.GetInitializationEvents(topic));
-
-                _liveConnection = new TaskCompletionSource<bool>(TaskCreationOptions.AttachedToParent);
-                FindEvents();
-            }, TaskCreationOptions.AttachedToParent);
+            FindEvents();
+            return _liveConnection.Task;
         }
 
         public void FindEvents()
