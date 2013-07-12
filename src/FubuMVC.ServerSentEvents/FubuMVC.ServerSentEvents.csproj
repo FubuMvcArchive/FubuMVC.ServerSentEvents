@@ -67,6 +67,7 @@
     <Compile Include="IChannelInitializer.cs" />
     <Compile Include="IDataFormatter.cs" />
     <Compile Include="IServerEvent.cs" />
+    <Compile Include="NulloShutdownDetector.cs" />
     <Compile Include="ServerEventList.cs" />
     <Compile Include="ServerSentEventRegistry.cs" />
     <Compile Include="ServerSentEventsExtension.cs" />

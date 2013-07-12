@@ -1,3 +1,4 @@
+using System;
 using FubuMVC.Core.Registration;
 
 namespace FubuMVC.ServerSentEvents
@@ -13,7 +14,14 @@ namespace FubuMVC.ServerSentEvents
             SetServiceIfNone<IServerEventWriter, ServerEventWriter>();
             SetServiceIfNone<ITopicChannelCache, TopicChannelCache>();
             SetServiceIfNone<IDataFormatter, DataFormatter>();
-            SetServiceIfNone<IAspNetShutDownDetector, AspNetShutDownDetector>();
+            if (Type.GetType("Mono.Runtime") == null)
+            {
+                SetServiceIfNone<IAspNetShutDownDetector, AspNetShutDownDetector>();
+            }
+            else
+            {
+                SetServiceIfNone<IAspNetShutDownDetector, NulloShutdownDetector>();
+            }
         }
     }
 }
