@@ -40,7 +40,7 @@ namespace FubuMVC.ServerSentEvents
 
             _channel = topicChannel.Channel;
 
-            WriteEvents(_channelInitializer.GetInitializationEvents(topic));
+            writeEvents(_channelInitializer.GetInitializationEvents(topic));
 
             FindEvents();
             return _liveConnection.Task;
@@ -57,10 +57,10 @@ namespace FubuMVC.ServerSentEvents
             var task = _channel.FindEvents(_topic);
 
             OnFaulted(task);
-            HandleFoundEvents(task);
+            handleFoundEvents(task);
         }
 
-        private void HandleFoundEvents(Task<IEnumerable<IServerEvent>> task)
+        private void handleFoundEvents(Task<IEnumerable<IServerEvent>> task)
         {
             var continuation = task.ContinueWith(x =>
             {
@@ -72,17 +72,24 @@ namespace FubuMVC.ServerSentEvents
                     return;
                 }
 
-                WriteEvents(x.Result);
+                writeEvents(x.Result);
                 FindEvents();
             }); // Intentionally not attached to parent to prevent stack overflow exceptions.
 
             OnFaulted(continuation);
         }
 
-        private void WriteEvents(IEnumerable<IServerEvent> events)
+        private void writeEvents(IEnumerable<IServerEvent> events)
         {
             var lastSuccessfulMessage = events
-                .TakeWhile(y => _writer.Write(y))
+                .TakeWhile(y => {
+                    if (_connectivity.IsClientConnected())
+                    {
+                        return _writer.Write(y);
+                    }
+
+                    return false;
+                })
                 .LastOrDefault();
 
             if (lastSuccessfulMessage != null)
