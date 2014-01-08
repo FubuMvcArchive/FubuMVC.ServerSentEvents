@@ -64,27 +64,27 @@
     <Compile Include="ChannelWriter.cs" />
     <Compile Include="DefaultEventQueueFactory.cs" />
     <Compile Include="EventPublisher.cs" />
+    <Compile Include="EventQueue.cs" />
+    <Compile Include="EventQueueFactory.cs" />
+    <Compile Include="IChannel.cs" />
     <Compile Include="IChannelInitializer.cs" />
     <Compile Include="IDataFormatter.cs" />
-    <Compile Include="IServerEvent.cs" />
-    <Compile Include="NulloShutdownDetector.cs" />
-    <Compile Include="ServerEventList.cs" />
-    <Compile Include="ServerSentEventRegistry.cs" />
-    <Compile Include="ServerSentEventsExtension.cs" />
-    <Compile Include="TopicChannelCache.cs" />
-    <Compile Include="IChannel.cs" />
     <Compile Include="IEventPublisher.cs" />
     <Compile Include="IEventQueue.cs" />
     <Compile Include="IEventQueueFactory.cs" />
+    <Compile Include="IServerEvent.cs" />
     <Compile Include="IServerEventWriter.cs" />
     <Compile Include="ITopicChannelCache.cs" />
+    <Compile Include="NulloShutdownDetector.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ServerEvent.cs" />
+    <Compile Include="ServerEventList.cs" />
     <Compile Include="ServerEventWriter.cs" />
-    <Compile Include="EventQueue.cs" />
-    <Compile Include="EventQueueFactory.cs" />
+    <Compile Include="ServerSentEventRegistry.cs" />
+    <Compile Include="ServerSentEventsExtension.cs" />
     <Compile Include="Topic.cs" />
     <Compile Include="TopicChannel.cs" />
+    <Compile Include="TopicChannelCache.cs" />
     <Compile Include="TopicFamily.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -102,9 +102,5 @@
     <EmbeddedResource Include="pak-WebContent.zip" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="pak-Data.zip" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="pak-Config.zip" />
   </ItemGroup>
 </Project>
