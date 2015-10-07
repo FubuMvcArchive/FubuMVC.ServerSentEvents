@@ -47,11 +47,5 @@ namespace FubuMVC.ServerSentEvents.Testing
                 .Type.ShouldEqual(typeof(TopicChannelCache));
         }
 
-		[Test]
-		public void DataFormatter_is_registered()
-		{
-			services.DefaultServiceFor<IDataFormatter>()
-				.Type.ShouldEqual(typeof (DataFormatter));
-		}
     }
 }

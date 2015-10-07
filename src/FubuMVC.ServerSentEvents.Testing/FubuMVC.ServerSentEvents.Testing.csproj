@@ -10,8 +10,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>FubuMVC.ServerSentEvents.Testing</RootNamespace>
     <AssemblyName>FubuMVC.ServerSentEvents.Testing</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -29,6 +31,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Bottles">
@@ -53,6 +56,9 @@
       <HintPath>..\packages\HtmlTags\lib\4.0\HtmlTags.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json\lib\net40\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit\lib\nunit.framework.dll</HintPath>
     </Reference>
@@ -82,7 +88,6 @@
   <ItemGroup>
     <Compile Include="AssemblyNeedsTheFubuModuleAttribute.cs" />
     <Compile Include="ChannelTester.cs" />
-    <Compile Include="DataFormatterTester.cs" />
     <Compile Include="EventPublisherTester.cs" />
     <Compile Include="ChannelWriterTester.cs" />
     <Compile Include="ServerEventWriterTester.cs" />
@@ -101,7 +106,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FubuMVC.ServerSentEvents\FubuMVC.ServerSentEvents.csproj">
-      <Project>{1476BE1A-1B50-49C1-A1F9-88CD9548B833}</Project>
+      <Project>{1476be1a-1b50-49c1-a1f9-88cd9548b833}</Project>
       <Name>FubuMVC.ServerSentEvents</Name>
     </ProjectReference>
   </ItemGroup>
